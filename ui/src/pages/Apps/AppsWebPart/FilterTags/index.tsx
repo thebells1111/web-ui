@@ -2,30 +2,62 @@ import React, { useState, useEffect } from 'react'
 
 import './styles.scss'
 
+const getSearchParams = <T extends object>(): Partial<T> => {
+    const param = new URLSearchParams(window.location.search)
+
+    return new Proxy(param, {
+        get(target, prop, receiver) {
+            return target.get(prop as string) || undefined
+        },
+    }) as T
+}
+
+const useSearchParams = <T extends object = any>(): Partial<T> => {
+    const [searchParams, setSearchParams] = useState(getSearchParams())
+
+    useEffect(() => {
+        setSearchParams(getSearchParams())
+    }, [])
+
+    return searchParams
+}
+
 function FilterTags({ apps, setFilteredApps, filterTypes }) {
-    const [appTypeFilters, setAppTypeFilters] = useState(new Set())
+    const [appTypeFilters, setAppTypeFilters] = useState(
+        initialAppFilters(useSearchParams().type)
+    )
     const [supportedElementsFilters, setSupportedElementsFilters] = useState(
         new Set()
     )
     const [platformsFilters, setPlatformsFilters] = useState(new Set())
 
+    function initialAppFilters(type) {
+        let set = type ? new Set(type.split(',')) : new Set()
+        return set
+    }
+
     useEffect(filterApps, [
         appTypeFilters,
         supportedElementsFilters,
         platformsFilters,
+        apps,
     ])
 
     function filterApps() {
         let filteredApps = filterAppType(
             filterSupportedElements(filterPlatforms([...apps]))
         )
+        console.log(filteredApps)
         setFilteredApps(filteredApps)
     }
 
     function filterAppType(appList) {
+        console.log(appTypeFilters)
+        console.log(appList)
         let filtered = appList.filter(({ appType }) => {
             return getIntersection(appType, appTypeFilters)
         })
+        console.log(filtered)
         return filtered
     }
 
